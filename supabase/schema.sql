@@ -107,7 +107,7 @@ create or replace function public.register_simaq_identity() returns trigger lang
 declare sid uuid; org uuid; requested_role text; nm text;
 begin
  requested_role:=new.raw_user_meta_data->>'role';
- if requested_role not in ('guru','orang_tua') then return new; end if;
+ if requested_role is null or requested_role not in ('guru','orang_tua') then return new; end if;
  begin sid:=(new.raw_user_meta_data->>'school_id')::uuid; exception when others then raise exception 'Invalid school selection'; end;
  select organization_id into org from public.schools where id=sid;
  if org is null then raise exception 'School not found'; end if;

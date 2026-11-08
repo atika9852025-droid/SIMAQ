@@ -32,9 +32,33 @@ Deno.serve(async(req)=>{
    const {error}=await server.from('guardian_students').upsert({guardian_id:body.guardian_id,student_id:body.student_id},{onConflict:'guardian_id,student_id'});
    return error?reply({error:'Gagal menghubungkan wali'},400):reply({ok:true});
   }
+  // Demo only: repair invited, unconfirmed accounts without mailbox access.
+  // Never enable SIMAQ_AUTO_CONFIRM_USERS on a real/student-data project.
+  if(body.action==='activate_demo_user'){
+   if(Deno.env.get('SIMAQ_AUTO_CONFIRM_USERS')!=='true')return reply({error:'Aktivasi demo tidak diaktifkan di server'},403);
+   const email=String(body.email||'').trim().toLowerCase();
+   const password=String(body.password||'');
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<12||password.length>128)return reply({error:'Email atau password demo tidak valid (minimal 12 karakter)'},400);
+   // Search scoped profiles first, then check auth email. Avoid arbitrary account takeover.
+   let q=server.from('profiles').select('id,role,organization_id,school_id,approved,rejected_at').eq('organization_id',actor.organization_id);
+   if(actor.role==='yayasan')q=q.eq('role','admin');
+   else q=q.eq('school_id',actor.school_id).in('role',['guru','orang_tua','siswa']);
+   const {data:profiles,error:profileListError}=await q;
+   if(profileListError)return reply({error:'Gagal memeriksa akun demo'},400);
+   let targetId:string|null=null;
+   for(const row of profiles||[]){
+    if(row.rejected_at)continue;
+    const {data:{user:target},error:targetError}=await server.auth.admin.getUserById(row.id);
+    if(!targetError&&target?.email?.toLowerCase()===email){targetId=row.id;break;}
+   }
+   if(!targetId)return reply({error:'Akun tidak ditemukan dalam kewenangan Anda'},404);
+   const {error:updateError}=await server.auth.admin.updateUserById(targetId,{password,email_confirm:true});
+   if(updateError)return reply({error:'Gagal aktivasi akun: '+updateError.message},400);
+   return reply({ok:true,confirmed:true});
+  }
   if(body.action==='create_user'){
    const role=String(body.role||'');
-   if(!((actor.role==='yayasan'&&role==='admin')||(actor.role==='admin'&&role==='siswa')))return reply({error:'Peran tidak diizinkan'},403);
+   if(!((actor.role==='yayasan'&&role==='admin')||(actor.role==='admin'&&['guru','orang_tua','siswa'].includes(role))))return reply({error:'Peran tidak diizinkan'},403);
    const school_id=actor.role==='admin'?actor.school_id:String(body.school_id||'');
    if(!uid(school_id))return reply({error:'Pilih sekolah'},400);
    const {data:school}=await server.from('schools').select('id,organization_id').eq('id',school_id).maybeSingle();
@@ -57,7 +81,7 @@ Deno.serve(async(req)=>{
    if(creationErr||!created.user)return reply({error:creationErr?.message||'Gagal membuat akun'},400);
    const newId=created.user.id;
    try{
-    const {error:profileErr}=await server.from('profiles').insert({id:newId,organization_id:actor.organization_id,school_id,role,full_name});
+    const {error:profileErr}=await server.from('profiles').insert({id:newId,organization_id:actor.organization_id,school_id,role,full_name,approved:true});
     if(profileErr)throw profileErr;
     if(targetStudent){
      const {data:linked,error:linkErr}=await server.from('students').update({profile_id:newId}).eq('id',targetStudent.id).is('profile_id',null).select('id');

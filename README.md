@@ -1,13 +1,21 @@
-# SIMAQ — Sistem Informasi Monitoring Al-Qur’an
+# SIMAQ — Proyek Demonstrasi Sistem Informasi Monitoring Al-Qur’an
 
-Paket **lengkap untuk instalasi baru**, tanpa migrasi atau ketergantungan pada database SIMAQ sebelumnya. Isi: aplikasi React/Vite untuk Netlify, satu skema SQL untuk proyek Supabase kosong, satu SQL penyiapan akun Yayasan, dan Edge Function server untuk mengundang Admin Sekolah, membuat akun siswa, serta menautkan wali dengan siswa.
+**Untuk proyek yang saat ini sudah terpasang di Supabase dan Netlify, baca `PANDUAN-PROYEK-DEMO.md` terlebih dahulu.** Jangan jalankan `supabase/schema.sql` pada database yang sudah memiliki akun, sekolah, atau siswa.
+
+Program berisi aplikasi React + Vite, database Supabase dengan pembatasan peran/sekolah, Edge Function untuk pembuatan dan aktivasi akun demo, impor siswa Excel per kelas, ekspor Excel, input setoran, riwayat, target, Peta Perhatian, dan hubungan akun wali–siswa.
+
+- Mode demo online memakai data contoh **yang benar-benar tersimpan di Supabase** ketika login dengan akun yang dibuat melalui menu Manajemen Data dan Edge Function dikonfigurasi.
+- Tombol **Coba demo lima dashboard** pada halaman login tetap hanya simulasi lokal yang tidak menyimpan data.
+- Pada proyek demonstrasi, aktifkan secret server `SIMAQ_AUTO_CONFIRM_USERS=true` agar pengelola dapat membuat akun email fiktif/password. **Tidak untuk layanan produksi atau data siswa sungguhan.**
+
+---
 
 ## Urutan instalasi dari NOL
 
 1. Buat proyek **Supabase baru**. Jangan gunakan proyek/database lama. Di **SQL Editor** jalankan `supabase/schema.sql` **satu kali** pada database baru dan kosong.
 2. Supabase → **Authentication → Providers → Email**: aktifkan konfirmasi email. Konfigurasikan SMTP pengiriman pesan yang Anda kuasai. Setelah domain Netlify tersedia, set **Site URL** dan **Redirect URLs** ke alamat `https://...netlify.app` (atau domain resmi).
 3. Supabase → **Authentication → Users → Add user**: buat **satu akun Yayasan** menggunakan email Anda sendiri dan password kuat. Pastikan email telah dikonfirmasi. Buka `supabase/BOOTSTRAP-YAYASAN.sql`, ganti placeholder email dan nama yayasan, lalu jalankan **satu kali**.
-4. Supabase → **Edge Functions**: buat fungsi `manage-simaq-users` dan salin isi `supabase/functions/manage-simaq-users/index.ts`. Gunakan verifikasi JWT aktif. Pada Secrets isi `SIMAQ_SITE_URL` dengan URL aplikasi Netlify untuk tujuan tautan undangan. Fungsi membaca `SUPABASE_URL`, `SUPABASE_ANON_KEY`, dan `SUPABASE_SERVICE_ROLE_KEY` di lingkungan Supabase; pastikan tersedia. **Jangan tempatkan service role key dalam Netlify atau berkas web.** Jangan aktifkan `SIMAQ_AUTO_CONFIRM_USERS` di produksi.
+4. Supabase → **Edge Functions**: buat fungsi `manage-simaq-users` dan salin isi `supabase/functions/manage-simaq-users/index.ts`. Gunakan verifikasi JWT aktif. Pada Secrets isi `SIMAQ_SITE_URL` dengan URL aplikasi Netlify untuk tujuan tautan undangan. Fungsi membaca `SUPABASE_URL`, `SUPABASE_ANON_KEY`, dan `SUPABASE_SERVICE_ROLE_KEY` di lingkungan Supabase; pastikan tersedia. **Jangan tempatkan service role key dalam Netlify atau berkas web.** Gunakan `SIMAQ_AUTO_CONFIRM_USERS=true` **hanya** untuk proyek demo dengan data fiktif; jangan aktifkan pada sistem nyata.
 5. Upload isi folder ini ke repositori GitHub baru. Netlify → **Import from Git**. Build command `npm run build`; publish directory `dist`. Atur environment variables `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY` (publishable/anon key, **bukan** secret service-role).
 6. Deploy, buka URL Netlify, login akun Yayasan, buat sekolah serta undang Admin Sekolah melalui menu Manajemen Data. Pengguna menerima email undangan dan mengatur sandinya. Guru dan wali mendaftar **sendiri** lewat halaman login, mengonfirmasi email, lalu Admin Sekolah menyetujui/menolak pendaftaran pada halaman Manajemen Data. Setelah disetujui, Admin Sekolah menghubungkan wali dengan siswa.
 7. Admin Sekolah dapat mengunduh template Excel, mengimpor siswa banyak kelas sekaligus, kemudian guru menginput setoran. Ekspor laporan berformat `.xlsx` dengan nama kolom, lebar otomatis, dan filter, bukan CSV.
@@ -21,8 +29,8 @@ Paket **lengkap untuk instalasi baru**, tanpa migrasi atau ketergantungan pada d
 
 ## Lima peran
 
-- **Yayasan:** melihat unit dalam yayasan, membuat sekolah, mengundang Admin Sekolah, memantau hafalan.
-- **Admin Sekolah:** impor data siswa, membuat akun siswa jika diperlukan, meninjau pendaftaran Guru/Wali, menghubungkan wali dan siswa, target.
+- **Yayasan:** melihat unit dalam yayasan, membuat sekolah, membuat Admin Sekolah demo atau mengundang melalui email bila mode demo mati, memantau hafalan.
+- **Admin Sekolah:** impor data siswa, membuat akun Guru/Wali/Siswa dalam mode demo, meninjau pendaftaran Guru/Wali, menghubungkan wali dan siswa, target.
 - **Guru:** mendaftar sendiri, setelah disetujui mencatat setoran hafalan.
 - **Siswa:** akun dapat diundang Admin Sekolah untuk melihat hafalan sendiri.
 - **Orang Tua/Wali:** mendaftar sendiri, setelah aktif dan dihubungkan Admin Sekolah melihat data anak terkait.
