@@ -1,3 +1,5 @@
+**Pembaruan target rentang surah (pada Supabase yang sudah terpasang):** baca `PANDUAN-PEMBARUAN-TARGET.md`, lalu jalankan `supabase/PEMBARUAN-TARGET-RENTANG.sql` satu kali.
+
 # SIMAQ — Proyek Demonstrasi Sistem Informasi Monitoring Al-Qur’an
 
 **Untuk proyek yang saat ini sudah terpasang di Supabase dan Netlify, baca `PANDUAN-PROYEK-DEMO.md` terlebih dahulu.** Jangan jalankan `supabase/schema.sql` pada database yang sudah memiliki akun, sekolah, atau siswa.
